@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#F5F5F5">
+
+    <!-- Заголовок -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Главная / Меню / Товары"
+        android:textSize="14sp"
+        android:textColor="#666666"
+        android:padding="16dp"
+        android:paddingBottom="8dp"/>
+
+    <!-- Категории (горизонтальный скролл) -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="8dp"
+        android:scrollbars="none">
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/categoryChipGroup"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:singleSelection="true"
+        app:selectionRequired="false"
+        app:chipSpacing="8dp">
+
+        <!-- Чип "Все" (по умолчанию выбран) -->
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipAll"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Все"
+            style="@style/Widget.Material3.Chip.Filter"
+            android:checked="true"
+            app:chipBackgroundColor="@color/chip_colors"
+            app:chipStrokeColor="@color/chip_stroke"
+            app:chipStrokeWidth="1dp"/>
+
+        <!-- Чип "Новинки" -->
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipNew"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Новинки"
+            style="@style/Widget.Material3.Chip.Filter"
+            app:chipBackgroundColor="@color/chip_colors"
+            app:chipStrokeColor="@color/chip_stroke"
+            app:chipStrokeWidth="1dp"/>
+
+        <!-- Чип "Джинсы" -->
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipJeans"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Джинсы"
+            style="@style/Widget.Material3.Chip.Filter"
+            app:chipBackgroundColor="@color/chip_colors"
+            app:chipStrokeColor="@color/chip_stroke"
+            app:chipStrokeWidth="1dp"/>
+
+        <!-- Чип "Футболки" -->
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipTshirts"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Футболки"
+            style="@style/Widget.Material3.Chip.Filter"
+            app:chipBackgroundColor="@color/chip_colors"
+            app:chipStrokeColor="@color/chip_stroke"
+            app:chipStrokeWidth="1dp"/>
+
+        <!-- Чип "Блейзеры" -->
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipBlazers"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Блейзеры"
+            style="@style/Widget.Material3.Chip.Filter"
+            app:chipBackgroundColor="@color/chip_colors"
+            app:chipStrokeColor="@color/chip_stroke"
+            app:chipStrokeWidth="1dp"/>
+
+        <!-- Чип "Брюки" -->
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipPants"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Брюки"
+            style="@style/Widget.Material3.Chip.Filter"
+            app:chipBackgroundColor="@color/chip_colors"
+            app:chipStrokeColor="@color/chip_stroke"
+            app:chipStrokeWidth="1dp"/>
+
+    </com.google.android.material.chip.ChipGroup>
+</HorizontalScrollView>
+
+    <!-- Результатов найдено -->
+<TextView
+android:id="@+id/resultsCountText"
+android:layout_width="match_parent"
+android:layout_height="wrap_content"
+android:paddingHorizontal="16dp"
+android:paddingBottom="8dp"
+android:text="4 товаров"
+android:textSize="14sp"
+android:textColor="#666666"/>
+
+    <!-- ProgressBar для загрузки -->
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="center"
+        android:layout_marginTop="32dp"
+        android:visibility="gone" />
+
+    <!-- Список товаров -->
+<androidx.recyclerview.widget.RecyclerView
+android:id="@+id/recyclerView"
+android:layout_width="match_parent"
+android:layout_height="match_parent"
+android:padding="12dp"
+android:clipToPadding="false"/>
+
+    </LinearLayout>
