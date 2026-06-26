@@ -9,6 +9,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.example.project1.R
 import com.example.project1.data.CartManager
@@ -16,6 +17,7 @@ import com.example.project1.data.Product
 import com.example.project1.data.Size
 import com.example.project1.utils.PriceFormatter
 import com.google.android.material.button.MaterialButton
+import kotlinx.coroutines.launch
 
 class ProductDetailActivity : AppCompatActivity() {
 
@@ -29,6 +31,8 @@ class ProductDetailActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_product_detail)
+
+        CartManager.init(applicationContext)
 
         // Получаем данные из Intent
         val productId = intent.getStringExtra("product_id") ?: ""
@@ -111,13 +115,15 @@ class ProductDetailActivity : AppCompatActivity() {
             val product = currentProduct
 
             if (size != null && product != null) {
-                CartManager.addToCart(product, size)
-                Toast.makeText(
-                    this,
-                    "Товар добавлен в корзину",
-                    Toast.LENGTH_SHORT
-                ).show()
-                finish()
+                lifecycleScope.launch {
+                    CartManager.addToCart(product.id, size, 1)
+                    Toast.makeText(
+                        this@ProductDetailActivity,
+                        "Товар добавлен в корзину",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    finish()
+                }
             }
         }
     }
@@ -135,11 +141,6 @@ class ProductDetailActivity : AppCompatActivity() {
             )
             button.text = size
             button.setPadding(8, 8, 8, 8)
-
-            if (CartManager.isInCart(product.id, size)) {
-                button.setTextColor(ContextCompat.getColor(this, android.R.color.holo_green_dark))
-                button.strokeColor = ContextCompat.getColorStateList(this, android.R.color.holo_green_dark)
-            }
 
             button.setOnClickListener {
                 for (i in 0 until sizesContainer.childCount) {

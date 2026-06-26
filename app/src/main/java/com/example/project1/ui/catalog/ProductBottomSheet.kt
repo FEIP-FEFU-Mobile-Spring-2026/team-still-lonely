@@ -11,6 +11,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.view.children
+import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.example.project1.R
 import com.example.project1.data.CartManager
@@ -21,6 +22,7 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import kotlinx.coroutines.launch
 
 class ProductBottomSheet : BottomSheetDialogFragment() {
 
@@ -88,9 +90,11 @@ class ProductBottomSheet : BottomSheetDialogFragment() {
         // Кнопка "В корзину"
         addToCartButton.setOnClickListener {
             val size = selectedSize ?: "one_size"
-            CartManager.addToCart(product, size)
-            Toast.makeText(requireContext(), "Товар добавлен в корзину", Toast.LENGTH_SHORT).show()
-            dismiss()
+            lifecycleScope.launch {
+                CartManager.addToCart(product.id, size, 1)
+                Toast.makeText(requireContext(), "Товар добавлен в корзину", Toast.LENGTH_SHORT).show()
+                dismiss()
+            }
         }
 
         // Кнопка информации
@@ -158,10 +162,8 @@ class ProductBottomSheet : BottomSheetDialogFragment() {
             button.setPadding(8, 8, 8, 8)
             button.isAllCaps = false
 
-            if (CartManager.isInCart(product.id, sizeName)) {
-                button.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.holo_green_dark))
-                button.strokeColor = ContextCompat.getColorStateList(requireContext(), android.R.color.holo_green_dark)
-            }
+            // Проверка наличия в корзине убрана, т.к. isInCart требует suspend и корутину
+            // Если нужно — можно добавить позже через lifecycleScope
 
             button.setOnClickListener {
                 sizesContainer.children.forEach { child ->

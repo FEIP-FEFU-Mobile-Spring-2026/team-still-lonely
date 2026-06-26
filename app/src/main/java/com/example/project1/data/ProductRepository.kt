@@ -18,6 +18,10 @@ import kotlinx.coroutines.withContext
 
 class ProductRepository(private val context: Context) {
 
+    companion object {
+        var cachedProducts: List<Product>? = null
+    }
+
     private val database = AppDatabase.getInstance(context)
     private val productDao = database.productDao()
     private val categoryDao = database.categoryDao()
@@ -40,6 +44,7 @@ class ProductRepository(private val context: Context) {
         val cachedCategories = getCachedCategories()
 
         if (cachedProducts.isNotEmpty() && cachedCategories.isNotEmpty()) {
+            ProductRepository.cachedProducts = cachedProducts
             emit(Resource.Success(cachedProducts))
         } else {
             @Suppress("UNCHECKED_CAST")
@@ -71,6 +76,7 @@ class ProductRepository(private val context: Context) {
                         }
                         val categories = body.categories.map { Category(it.id, it.name) }
 
+                        ProductRepository.cachedProducts = products
                         saveToCache(products, categories)
                         emit(Resource.Success(products))
                     } else if (cachedProducts.isEmpty()) {

@@ -1,101 +1,107 @@
 package com.example.project1.data
 
-import android.util.Log
+import android.content.Context
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import com.example.project1.data.local.AppDatabase
+import com.example.project1.data.local.entities.CartEntity
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 object CartManager {
-    private val cartItems = mutableMapOf<String, CartItem>()
 
-    data class CartItem(
-        val product: Product,
-        val size: String,
-        var quantity: Int = 1,
-        var isSelected: Boolean = true
-    ) {
-        val key: String
-            get() = "${product.id}_$size"
-    }
+    private lateinit var cartDao: com.example.project1.data.local.dao.CartDao
+    private lateinit var database: AppDatabase
+    private var isInitialized = false
 
-    fun addToCart(product: Product, size: String) {
-        val key = "${product.id}_$size"
-        val existingItem = cartItems[key]
+    // LiveData для количества товаров
+    private val _totalQuantity = MutableLiveData(0)
+    val totalQuantity: LiveData<Int> = _totalQuantity
 
-        if (existingItem == null) {
-            cartItems[key] = CartItem(product, size, 1, true)
-            Log.d("CartManager", "Товар добавлен: ${product.name} ($size)")
-        } else {
-            existingItem.quantity++
-            Log.d("CartManager", "Количество увеличено: ${product.name} ($size) = ${existingItem.quantity}")
+    fun init(context: Context) {
+        if (!isInitialized) {
+            database = AppDatabase.getInstance(context)
+            cartDao = database.cartDao()
+            isInitialized = true
+            refreshTotalQuantity()
         }
     }
 
-    fun updateQuantity(productId: String, size: String, newQuantity: Int) {
-        val key = "${productId}_$size"
-        if (newQuantity <= 0) {
-            cartItems.remove(key)
-        } else {
-            cartItems[key]?.quantity = newQuantity
+    private fun refreshTotalQuantity() {
+        CoroutineScope(Dispatchers.IO).launch {
+            val count = cartDao.getTotalQuantity()
+            _totalQuantity.postValue(count)
         }
     }
 
-    fun toggleSelection(productId: String, size: String): Boolean {
-        val key = "${productId}_$size"
-        val item = cartItems[key]
-        return if (item != null) {
-            item.isSelected = !item.isSelected
-            item.isSelected
-        } else {
-            false
+    suspend fun addToCart(productId: String, sizeName: String, quantity: Int = 1) {
+        withContext(Dispatchers.IO) {
+            val existing = cartDao.getByProductAndSize(productId, sizeName)
+            if (existing != null) {
+                cartDao.updateQuantity(productId, sizeName, existing.quantity + quantity)
+            } else {
+                cartDao.insert(CartEntity(productId = productId, sizeName = sizeName, quantity = quantity))
+            }
+            refreshTotalQuantity()
         }
     }
 
-    fun selectAll(select: Boolean) {
-        cartItems.values.forEach { it.isSelected = select }
+    suspend fun removeFromCart(productId: String, sizeName: String) {
+        withContext(Dispatchers.IO) {
+            cartDao.deleteByProductAndSize(productId, sizeName)
+            refreshTotalQuantity()
+        }
     }
 
-    fun isAllSelected(): Boolean {
-        return cartItems.values.all { it.isSelected }
+    suspend fun updateQuantity(productId: String, sizeName: String, newQuantity: Int) {
+        withContext(Dispatchers.IO) {
+            if (newQuantity <= 0) {
+                removeFromCart(productId, sizeName)
+            } else {
+                cartDao.updateQuantity(productId, sizeName, newQuantity)
+                refreshTotalQuantity()
+            }
+        }
     }
 
-    fun getSelectedCount(): Int {
-        return cartItems.values.count { it.isSelected }
+    suspend fun clearCart() {
+        withContext(Dispatchers.IO) {
+            cartDao.clearAll()
+            refreshTotalQuantity()
+        }
     }
 
-    fun getSelectedItems(): List<CartItem> {
-        return cartItems.values.filter { it.isSelected }
+    fun getCartItems(): Flow<List<CartItem>> = flow {
+        val entities = cartDao.getAll()
+        val items = entities.mapNotNull { entity ->
+            val product = getProductById(entity.productId)
+            if (product != null) {
+                CartItem(
+                    product = product,
+                    sizeName = entity.sizeName,
+                    quantity = entity.quantity
+                )
+            } else {
+                null
+            }
+        }
+        emit(items)
     }
 
-    fun removeFromCart(productId: String, size: String) {
-        val key = "${productId}_$size"
-        cartItems.remove(key)
+    private fun getProductById(productId: String): Product? {
+        return ProductRepository.cachedProducts?.find { it.id == productId }
     }
+}
 
-    fun getCartItems(): List<CartItem> {
-        return cartItems.values.toList()
-    }
-
-    fun getItemQuantity(productId: String, size: String): Int {
-        val key = "${productId}_$size"
-        return cartItems[key]?.quantity ?: 0
-    }
-
-    fun isInCart(productId: String, size: String): Boolean {
-        val key = "${productId}_$size"
-        return cartItems.containsKey(key)
-    }
-
-    fun clearCart() {
-        cartItems.clear()
-    }
-
-    fun getTotalPrice(): Double {
-        return cartItems.values
-            .filter { it.isSelected }
-            .sumOf { it.product.price * it.quantity }
-    }
-
-    fun getTotalItemCount(): Int {
-        return cartItems.values
-            .filter { it.isSelected }
-            .sumOf { it.quantity }
-    }
+data class CartItem(
+    val product: Product,
+    val sizeName: String,
+    val quantity: Int
+) {
+    val totalPrice: Double
+        get() = product.price * quantity
 }
