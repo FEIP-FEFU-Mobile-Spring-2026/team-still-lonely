@@ -1,76 +1,128 @@
 package com.example.project1.data
 
 import android.content.Context
-import com.google.gson.Gson
+import com.example.project1.data.local.AppDatabase
+import com.example.project1.data.local.entities.CategoryEntity
+import com.example.project1.data.local.entities.ProductEntity
+import com.example.project1.data.remote.RetrofitClient
+import com.example.project1.utils.NetworkMonitor
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import com.example.project1.R
-import java.io.IOException
 
 class ProductRepository(private val context: Context) {
 
-    private var cachedProducts: List<Product>? = null
-    private var cachedCategories: List<Category>? = null
+    private val database = AppDatabase.getInstance(context)
+    private val productDao = database.productDao()
+    private val categoryDao = database.categoryDao()
 
-    suspend fun getAllProducts(): Result<List<Product>> {
-        return withContext(Dispatchers.IO) {
-            try {
-                if (cachedProducts == null) {
-                    loadProductsFromJson()
-                }
-                Result.success(cachedProducts ?: emptyList())
-            } catch (e: Exception) {
-                Result.failure(e)
+    private val networkMonitor = NetworkMonitor(context)
+
+    private val _isNetworkAvailable = MutableStateFlow(true)
+    val isNetworkAvailable = _isNetworkAvailable.asStateFlow()
+
+    init {
+        CoroutineScope(Dispatchers.IO).launch {
+            networkMonitor.isConnected.collect { connected ->
+                _isNetworkAvailable.value = connected
             }
         }
     }
 
-    suspend fun getCategories(): Result<List<Category>> {
+    fun getCatalog(): Flow<Resource<List<Product>>> = flow {
+        val cachedProducts = getCachedProducts()
+        val cachedCategories = getCachedCategories()
+
+        if (cachedProducts.isNotEmpty() && cachedCategories.isNotEmpty()) {
+            emit(Resource.Success(cachedProducts))
+        } else {
+            @Suppress("UNCHECKED_CAST")
+            emit(Resource.Loading as Resource<List<Product>>)
+        }
+
+        if (_isNetworkAvailable.value) {
+            try {
+                val response = RetrofitClient.apiService.getCatalog("Bearer ${RetrofitClient.TOKEN}")
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    if (body != null) {
+                        val products = body.items.map { dto ->
+                            Product(
+                                id = dto.id,
+                                name = dto.name,
+                                shortDescription = dto.shortDescription,
+                                longDescription = dto.longDescription,
+                                priceInKopecks = dto.priceInKopecks,
+                                imageUrl = dto.imageUrl,
+                                tags = dto.tags,
+                                sizes = dto.sizes.map { Size(it.id, it.name) },
+                                categoryId = dto.categoryId,
+                                material = dto.material ?: "",
+                                weight = dto.weight ?: "",
+                                season = dto.season ?: "",
+                                countryOfOrigin = dto.countryOfOrigin ?: ""
+                            )
+                        }
+                        val categories = body.categories.map { Category(it.id, it.name) }
+
+                        saveToCache(products, categories)
+                        emit(Resource.Success(products))
+                    } else if (cachedProducts.isEmpty()) {
+                        emit(Resource.Error("Пустой ответ"))
+                    }
+                } else if (cachedProducts.isEmpty()) {
+                    emit(Resource.Error("Ошибка сервера: ${response.code()}"))
+                }
+            } catch (e: Exception) {
+                if (cachedProducts.isEmpty()) {
+                    emit(Resource.Error("Нет интернета"))
+                }
+            }
+        } else if (cachedProducts.isEmpty()) {
+            emit(Resource.Error("Нет подключения к интернету и нет кэша"))
+        }
+    }.flowOn(Dispatchers.IO)
+
+    suspend fun getCategories(): List<Category> {
+        return withContext(Dispatchers.IO) {
+            categoryDao.getAll().map { it.toCategory() }
+        }
+    }
+
+    private suspend fun getCachedProducts(): List<Product> {
         return withContext(Dispatchers.IO) {
             try {
-                if (cachedCategories == null) {
-                    loadProductsFromJson()
-                }
-                Result.success(cachedCategories ?: emptyList())
+                productDao.getAll().map { it.toProduct() }
             } catch (e: Exception) {
-                Result.failure(e)
+                emptyList()
             }
         }
     }
 
-    suspend fun getProductsByCategory(categoryId: String): Result<List<Product>> {
+    private suspend fun getCachedCategories(): List<Category> {
         return withContext(Dispatchers.IO) {
             try {
-                if (cachedProducts == null) {
-                    loadProductsFromJson()
-                }
-                val filtered = cachedProducts?.filter { it.categoryId == categoryId } ?: emptyList()
-                Result.success(filtered)
+                categoryDao.getAll().map { it.toCategory() }
             } catch (e: Exception) {
-                Result.failure(e)
+                emptyList()
             }
         }
     }
 
-    private suspend fun loadProductsFromJson() {
+    private suspend fun saveToCache(products: List<Product>, categories: List<Category>) {
         withContext(Dispatchers.IO) {
-            try {
-                val jsonString = context.resources.openRawResource(R.raw.products)
-                    .bufferedReader()
-                    .use { it.readText() }
-
-                val gson = Gson()
-                val response = gson.fromJson(jsonString, ProductsResponse::class.java)
-
-                cachedCategories = response.categories
-                cachedProducts = response.items
-            } catch (e: Exception) {
-                throw Exception("Ошибка загрузки данных: ${e.message}")
-            }
+            productDao.clearAll()
+            productDao.insertAll(products.map { ProductEntity.fromProduct(it) })
+            categoryDao.clearAll()
+            categoryDao.insertAll(categories.map { CategoryEntity(it.id, it.name) })
         }
     }
-    fun clearCache() {
-        cachedProducts = null
-        cachedCategories = null
-    }
+
+    fun isNetworkAvailable(): Boolean = _isNetworkAvailable.value
 }

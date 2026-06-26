@@ -16,6 +16,7 @@ import com.example.project1.data.Product
 import com.example.project1.data.Resource
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
+import com.google.android.material.snackbar.Snackbar
 
 class CatalogFragment : Fragment() {
 
@@ -28,6 +29,7 @@ class CatalogFragment : Fragment() {
     private lateinit var errorLayout: View
     private lateinit var errorText: TextView
     private lateinit var retryButton: Button
+    private var networkSnackbar: Snackbar? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -51,13 +53,13 @@ class CatalogFragment : Fragment() {
             CatalogViewModelFactory(requireActivity().application)
         )[CatalogViewModel::class.java]
 
-        // Восстанавливаем состояние
         savedInstanceState?.let {
             val savedFilter = it.getString("current_filter", "Новинки")
-            viewModel.setFilter(savedFilter)
+            viewModel.setFilter(savedFilter ?: "Новинки")
         }
 
         observeViewModel()
+        observeNetworkState()
 
         retryButton.setOnClickListener {
             viewModel.refresh()
@@ -72,7 +74,6 @@ class CatalogFragment : Fragment() {
     }
 
     private fun observeViewModel() {
-        // Начинаем с показа загрузки
         showLoading(true)
 
         viewModel.products.observe(viewLifecycleOwner) { resource ->
@@ -87,7 +88,7 @@ class CatalogFragment : Fragment() {
                     showLoading(false)
                     showError(resource.message)
                 }
-                else -> {}
+                is Resource.Loading -> {}
             }
         }
 
@@ -102,6 +103,33 @@ class CatalogFragment : Fragment() {
                 else -> {}
             }
         }
+    }
+
+    private fun observeNetworkState() {
+        viewModel.isNetworkAvailable.observe(viewLifecycleOwner) { connected ->
+            if (!connected) {
+                showNetworkSnackbar("Нет подключения к интернету")
+            } else {
+                hideNetworkSnackbar()
+            }
+        }
+    }
+
+    private fun showNetworkSnackbar(message: String) {
+        networkSnackbar?.dismiss()
+        networkSnackbar = Snackbar.make(
+            requireView(),
+            message,
+            Snackbar.LENGTH_INDEFINITE
+        ).setAction("Повторить") {
+            viewModel.refresh()
+        }
+        networkSnackbar?.show()
+    }
+
+    private fun hideNetworkSnackbar() {
+        networkSnackbar?.dismiss()
+        networkSnackbar = null
     }
 
     private fun showLoading(show: Boolean) {

@@ -1,15 +1,13 @@
 plugins {
+    id("org.jetbrains.kotlin.android")
     alias(libs.plugins.android.application)
     id("org.jetbrains.kotlin.plugin.parcelize")
+    id("kotlin-kapt")
 }
 
 android {
     namespace = "com.example.project1"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.project1"
@@ -33,6 +31,13 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+    }
+    kotlinOptions {
+        jvmTarget = "11"
+    }
+    kapt {
+        correctErrorTypes = true
+        useBuildCache = true
     }
 }
 
@@ -59,6 +64,10 @@ dependencies {
 
     implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
 
-    implementation("com.google.code.gson:gson:2.10.1")  // Для парсинга JSON
-    implementation("com.facebook.shimmer:shimmer:0.5.0")  // Для skeleton-эффекта
+    implementation("com.google.code.gson:gson:2.10.1")
+    implementation("com.facebook.shimmer:shimmer:0.5.0")
+
+    implementation("androidx.room:room-runtime:2.7.0-beta01")
+    implementation("androidx.room:room-ktx:2.7.0-beta01")
+    kapt("androidx.room:room-compiler:2.7.0-beta01")
 }

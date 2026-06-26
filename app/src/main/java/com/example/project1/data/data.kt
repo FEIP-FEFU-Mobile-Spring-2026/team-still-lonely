@@ -28,11 +28,6 @@ data class Size(
     val name: String
 ) : Serializable
 
-data class ProductsResponse(
-    val categories: List<Category>,
-    val items: List<Product>
-) : Serializable
-
 data class Category(
     val id: String,
     val name: String

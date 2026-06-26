@@ -11,7 +11,6 @@ import com.example.project1.data.Product
 import com.example.project1.data.ProductRepository
 import com.example.project1.data.Resource
 import kotlinx.coroutines.launch
-import com.example.project1.ui.catalog.ProductBottomSheet
 
 class CatalogViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -23,73 +22,68 @@ class CatalogViewModel(application: Application) : AndroidViewModel(application)
     private val _categories = MutableLiveData<Resource<List<String>>>()
     val categories: LiveData<Resource<List<String>>> = _categories
 
+    private val _isNetworkAvailable = MutableLiveData<Boolean>()
+    val isNetworkAvailable: LiveData<Boolean> = _isNetworkAvailable
+
     private var allProducts: List<Product> = emptyList()
     private var allCategories: List<Category> = emptyList()
     private var currentFilter: String = "Новинки"
     private var isDataLoaded = false
 
     init {
+        viewModelScope.launch {
+            repository.isNetworkAvailable.collect { connected ->
+                _isNetworkAvailable.postValue(connected)
+            }
+        }
         loadData()
     }
 
     fun loadData() {
         viewModelScope.launch {
-            // Используем вспомогательные функции для создания Loading с правильным типом
-            _products.value = getLoadingResource()
-            _categories.value = getLoadingResourceCategories()
-
-            try {
-                val categoriesResult = repository.getCategories()
-                if (categoriesResult.isSuccess) {
-                    allCategories = categoriesResult.getOrNull() ?: emptyList()
-                    val translatedCategories = CategoryTranslator.getTranslatedCategories(allCategories)
-                    _categories.value = Resource.Success(translatedCategories)
-                } else {
-                    _categories.value = Resource.Error(
-                        categoriesResult.exceptionOrNull()?.message ?: "Ошибка загрузки категорий"
-                    )
+            repository.getCatalog().collect { resource ->
+                when (resource) {
+                    is Resource.Loading -> {
+                        if (!isDataLoaded) {
+                            @Suppress("UNCHECKED_CAST")
+                            _products.value = Resource.Loading as Resource<List<Product>>
+                        }
+                    }
+                    is Resource.Success -> {
+                        allProducts = resource.data
+                        isDataLoaded = true
+                        loadCategories()
+                        applyFilter(currentFilter)
+                    }
+                    is Resource.Error -> {
+                        if (!isDataLoaded) {
+                            _products.value = Resource.Error(resource.message)
+                        }
+                    }
                 }
-
-                val productsResult = repository.getAllProducts()
-                if (productsResult.isSuccess) {
-                    allProducts = productsResult.getOrNull() ?: emptyList()
-                    isDataLoaded = true
-                    applyFilter(currentFilter)
-                } else {
-                    _products.value = Resource.Error(
-                        productsResult.exceptionOrNull()?.message ?: "Ошибка загрузки товаров"
-                    )
-                }
-            } catch (e: Exception) {
-                _products.value = Resource.Error(e.message ?: "Ошибка загрузки данных")
-                _categories.value = Resource.Error(e.message ?: "Ошибка загрузки данных")
             }
         }
     }
 
-    @Suppress("UNCHECKED_CAST")
-    private fun getLoadingResource(): Resource<List<Product>> {
-        return Resource.Loading as Resource<List<Product>>
+    private suspend fun loadCategories() {
+        allCategories = repository.getCategories()
+        val translated = CategoryTranslator.getTranslatedCategories(allCategories)
+        _categories.value = Resource.Success(translated)
     }
 
-    @Suppress("UNCHECKED_CAST")
-    private fun getLoadingResourceCategories(): Resource<List<String>> {
-        return Resource.Loading as Resource<List<String>>
-    }
-
-    fun filterByCategory(russianCategory: String) {
-        currentFilter = russianCategory
+    fun filterByCategory(category: String) {
+        currentFilter = category
         if (isDataLoaded) {
-            applyFilter(russianCategory)
+            applyFilter(category)
         }
     }
 
-    private fun applyFilter(russianCategory: String) {
-        val filtered = when (russianCategory) {
+    private fun applyFilter(category: String) {
+        val filtered = when (category) {
             "Новинки" -> allProducts.filter { it.isNew }
             "Все" -> allProducts
             else -> {
-                val categoryId = CategoryTranslator.getCategoryId(russianCategory, allCategories)
+                val categoryId = CategoryTranslator.getCategoryId(category, allCategories)
                 if (categoryId != null) {
                     allProducts.filter { it.categoryId == categoryId }
                 } else {
@@ -101,7 +95,7 @@ class CatalogViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun refresh() {
-        repository.clearCache()
+        isDataLoaded = false
         loadData()
     }
 
