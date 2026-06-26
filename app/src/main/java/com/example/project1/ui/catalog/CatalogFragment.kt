@@ -5,16 +5,16 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.TextView
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.project1.R
 import com.example.project1.data.Product
-import com.example.project1.data.Resource  // ВАЖНО!
+import com.example.project1.data.Resource
 import com.example.project1.ui.productdetail.ProductDetailActivity
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
@@ -27,6 +27,9 @@ class CatalogFragment : Fragment() {
     private lateinit var chipGroup: ChipGroup
     private lateinit var resultsCountText: TextView
     private lateinit var progressBar: ProgressBar
+    private lateinit var errorLayout: View
+    private lateinit var errorText: TextView
+    private lateinit var retryButton: Button
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -39,49 +42,94 @@ class CatalogFragment : Fragment() {
         chipGroup = view.findViewById(R.id.categoryChipGroup)
         resultsCountText = view.findViewById(R.id.resultsCountText)
         progressBar = view.findViewById(R.id.progressBar)
+        errorLayout = view.findViewById(R.id.errorLayout)
+        errorText = view.findViewById(R.id.errorText)
+        retryButton = view.findViewById(R.id.retryButton)
 
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
 
-        viewModel = ViewModelProvider(this)[CatalogViewModel::class.java]
+        viewModel = ViewModelProvider(
+            this,
+            CatalogViewModelFactory(requireActivity().application)
+        )[CatalogViewModel::class.java]
+
+        // Восстанавливаем состояние
+        savedInstanceState?.let {
+            val savedFilter = it.getString("current_filter", "Новинки")
+            viewModel.setFilter(savedFilter)
+        }
 
         observeViewModel()
+
+        retryButton.setOnClickListener {
+            viewModel.refresh()
+        }
 
         return view
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString("current_filter", viewModel.getCurrentFilter())
+    }
+
     private fun observeViewModel() {
-        // Наблюдаем за продуктами
+        // Начинаем с показа загрузки
+        showLoading(true)
+
         viewModel.products.observe(viewLifecycleOwner) { resource ->
             when (resource) {
-                is Resource.Loading -> {
-                    progressBar.visibility = View.VISIBLE
-                    recyclerView.visibility = View.GONE
-                }
                 is Resource.Success -> {
-                    progressBar.visibility = View.GONE
-                    recyclerView.visibility = View.VISIBLE
+                    showLoading(false)
+                    hideError()
                     updateAdapter(resource.data)
                     updateResultsCount(resource.data.size)
                 }
                 is Resource.Error -> {
-                    progressBar.visibility = View.GONE
-                    Toast.makeText(requireContext(), "Ошибка: ${resource.message}", Toast.LENGTH_LONG).show()
+                    showLoading(false)
+                    showError(resource.message)
                 }
+                else -> {}
             }
         }
 
-        // Наблюдаем за категориями
         viewModel.categories.observe(viewLifecycleOwner) { resource ->
             when (resource) {
                 is Resource.Success -> {
                     updateCategoryChips(resource.data)
                 }
                 is Resource.Error -> {
-                    Toast.makeText(requireContext(), "Ошибка загрузки категорий", Toast.LENGTH_SHORT).show()
+                    // Не показываем ошибку категорий отдельно
                 }
                 else -> {}
             }
         }
+    }
+
+    private fun showLoading(show: Boolean) {
+        if (show) {
+            progressBar.visibility = View.VISIBLE
+            recyclerView.visibility = View.GONE
+            errorLayout.visibility = View.GONE
+            resultsCountText.visibility = View.GONE
+        } else {
+            progressBar.visibility = View.GONE
+            recyclerView.visibility = View.VISIBLE
+            resultsCountText.visibility = View.VISIBLE
+        }
+    }
+
+    private fun showError(message: String) {
+        errorLayout.visibility = View.VISIBLE
+        errorText.text = if (message.isNotEmpty()) message else "Не удалось загрузить данные"
+        recyclerView.visibility = View.GONE
+        resultsCountText.visibility = View.GONE
+        progressBar.visibility = View.GONE
+    }
+
+    private fun hideError() {
+        errorLayout.visibility = View.GONE
+        resultsCountText.visibility = View.VISIBLE
     }
 
     private fun updateAdapter(products: List<Product>) {
@@ -91,15 +139,15 @@ class CatalogFragment : Fragment() {
                 val intent = Intent(requireContext(), ProductDetailActivity::class.java).apply {
                     putExtra("product_id", product.id)
                     putExtra("product_name", product.name)
-                    putExtra("product_description", product.description)
+                    putExtra("product_description", product.longDescription)
                     putExtra("product_price", product.price)
                     putExtra("product_image", product.imageUrl)
-                    putExtra("product_category", product.category)  // Добавьте эту строку
+                    putExtra("product_category", product.categoryId)
+                    putExtra("product_sizes", product.sizes.map { it.name }.toTypedArray())
+                    putExtra("product_material", product.material)
+                    putExtra("product_country", product.countryOfOrigin)
                 }
                 startActivity(intent)
-            },
-            onQuantityChange = { product, quantity ->
-                // Обработка изменения количества
             }
         )
         recyclerView.adapter = adapter
@@ -113,16 +161,14 @@ class CatalogFragment : Fragment() {
             chip.text = category
             chip.id = View.generateViewId()
 
-            if (index == 0) {
+            if (category == viewModel.getCurrentFilter()) {
+                chip.isChecked = true
+            } else if (index == 0 && viewModel.getCurrentFilter().isEmpty()) {
                 chip.isChecked = true
             }
 
             chip.setOnClickListener {
                 viewModel.filterByCategory(category)
-            }
-
-            chip.setOnClickListener {
-                viewModel.filterByCategory(category)  // category уже на русском
             }
 
             chipGroup.addView(chip)
@@ -137,5 +183,4 @@ class CatalogFragment : Fragment() {
         }
         resultsCountText.text = "$count $word"
     }
-
 }
