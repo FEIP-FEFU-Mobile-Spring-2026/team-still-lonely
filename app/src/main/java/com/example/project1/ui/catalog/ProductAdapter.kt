@@ -8,6 +8,8 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DataSource
@@ -16,12 +18,11 @@ import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.example.project1.R
 import com.example.project1.data.Product
+import com.example.project1.utils.PriceFormatter
 
 class ProductAdapter(
-    private val products: List<Product>,
-    private val onItemClick: (Product) -> Unit,
-    private val onQuantityChange: (Product, Int) -> Unit = { _, _ -> }
-) : RecyclerView.Adapter<ProductAdapter.ViewHolder>() {
+    private val onItemClick: (Product) -> Unit
+) : ListAdapter<Product, ProductAdapter.ViewHolder>(DIFF_CALLBACK) {
 
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val name: TextView = itemView.findViewById(R.id.productName)
@@ -29,14 +30,11 @@ class ProductAdapter(
         private val price: TextView = itemView.findViewById(R.id.productPrice)
         private val image: ImageView = itemView.findViewById(R.id.productImage)
         private val counterLayout: LinearLayout = itemView.findViewById(R.id.counterLayout)
-        private val minusButton: TextView = itemView.findViewById(R.id.minusButton)
-        private val plusButton: TextView = itemView.findViewById(R.id.plusButton)
-        private val quantityText: TextView = itemView.findViewById(R.id.quantityText)
 
         fun bind(product: Product) {
             name.text = product.name
-            description.text = product.description
-            price.text = String.format("$%,.2f", product.price)
+            description.text = product.shortDescription
+            price.text = PriceFormatter.formatRublesFromKopecks(product.priceInKopecks)
 
             Glide.with(itemView.context)
                 .load(product.imageUrl)
@@ -59,16 +57,11 @@ class ProductAdapter(
                         target: Target<Drawable>,
                         dataSource: DataSource,
                         isFirstResource: Boolean
-                    ): Boolean {
-                        Log.d("GlideSuccess", "Успешно загружено: ${product.imageUrl}")
-                        return false
-                    }
+                    ): Boolean = false
                 })
                 .into(image)
 
-            // Счетчик пока скрыт
             counterLayout.visibility = View.GONE
-
             itemView.setOnClickListener { onItemClick(product) }
         }
     }
@@ -80,8 +73,16 @@ class ProductAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(products[position])
+        holder.bind(getItem(position))
     }
 
-    override fun getItemCount() = products.size
+    companion object {
+        private val DIFF_CALLBACK = object : DiffUtil.ItemCallback<Product>() {
+            override fun areItemsTheSame(oldItem: Product, newItem: Product) =
+                oldItem.id == newItem.id
+
+            override fun areContentsTheSame(oldItem: Product, newItem: Product) =
+                oldItem == newItem
+        }
+    }
 }

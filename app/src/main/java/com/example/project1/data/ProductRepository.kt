@@ -1,86 +1,76 @@
 package com.example.project1.data
 
+import android.content.Context
+import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.withContext
+import com.example.project1.R
+import java.io.IOException
 
-class ProductRepository {
+class ProductRepository(private val context: Context) {
 
-    private val apiService = RetrofitClient.apiService
+    private var cachedProducts: List<Product>? = null
+    private var cachedCategories: List<Category>? = null
 
     suspend fun getAllProducts(): Result<List<Product>> {
-        return try {
-            val response = apiService.getAllProducts()
-            if (response.isSuccessful) {
-                val products = response.body()?.map { it.toProduct() } ?: emptyList()
-                Result.success(products)
-            } else {
-                Result.failure(Exception("Ошибка загрузки: ${response.code()}"))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    suspend fun getProductById(id: Int): Result<Product> {
-        return try {
-            val response = apiService.getProduct(id)
-            if (response.isSuccessful) {
-                val product = response.body()?.toProduct()
-                if (product != null) {
-                    Result.success(product)
-                } else {
-                    Result.failure(Exception("Продукт не найден"))
+        return withContext(Dispatchers.IO) {
+            try {
+                if (cachedProducts == null) {
+                    loadProductsFromJson()
                 }
-            } else {
-                Result.failure(Exception("Ошибка загрузки: ${response.code()}"))
+                Result.success(cachedProducts ?: emptyList())
+            } catch (e: Exception) {
+                Result.failure(e)
             }
-        } catch (e: Exception) {
-            Result.failure(e)
         }
     }
 
-    suspend fun getProductsByCategory(category: String): Result<List<Product>> {
-        return try {
-            val response = apiService.getProductsByCategory(category)
-            if (response.isSuccessful) {
-                val products = response.body()?.map { it.toProduct() } ?: emptyList()
-                Result.success(products)
-            } else {
-                Result.failure(Exception("Ошибка загрузки: ${response.code()}"))
+    suspend fun getCategories(): Result<List<Category>> {
+        return withContext(Dispatchers.IO) {
+            try {
+                if (cachedCategories == null) {
+                    loadProductsFromJson()
+                }
+                Result.success(cachedCategories ?: emptyList())
+            } catch (e: Exception) {
+                Result.failure(e)
             }
-        } catch (e: Exception) {
-            Result.failure(e)
         }
     }
 
-    suspend fun getCategories(): Result<List<String>> {
-        return try {
-            val response = apiService.getCategories()
-            if (response.isSuccessful) {
-                Result.success(response.body() ?: emptyList())
-            } else {
-                Result.failure(Exception("Ошибка загрузки категорий"))
+    suspend fun getProductsByCategory(categoryId: String): Result<List<Product>> {
+        return withContext(Dispatchers.IO) {
+            try {
+                if (cachedProducts == null) {
+                    loadProductsFromJson()
+                }
+                val filtered = cachedProducts?.filter { it.categoryId == categoryId } ?: emptyList()
+                Result.success(filtered)
+            } catch (e: Exception) {
+                Result.failure(e)
             }
-        } catch (e: Exception) {
-            Result.failure(e)
         }
     }
 
-    fun getAllProductsFlow(): Flow<Resource<List<Product>>> = flow {
-        // Используем аннотацию @Suppress для подавления ошибки
-        @Suppress("UNCHECKED_CAST")
-        emit(Resource.Loading as Resource<List<Product>>)
-        try {
-            val result = getAllProducts()
-            if (result.isSuccess) {
-                emit(Resource.Success(result.getOrThrow()))
-            } else {
-                emit(Resource.Error(result.exceptionOrNull()?.message ?: "Ошибка"))
+    private suspend fun loadProductsFromJson() {
+        withContext(Dispatchers.IO) {
+            try {
+                val jsonString = context.resources.openRawResource(R.raw.products)
+                    .bufferedReader()
+                    .use { it.readText() }
+
+                val gson = Gson()
+                val response = gson.fromJson(jsonString, ProductsResponse::class.java)
+
+                cachedCategories = response.categories
+                cachedProducts = response.items
+            } catch (e: Exception) {
+                throw Exception("Ошибка загрузки данных: ${e.message}")
             }
-        } catch (e: Exception) {
-            emit(Resource.Error(e.message ?: "Ошибка"))
         }
-    }.flowOn(Dispatchers.IO)
+    }
+    fun clearCache() {
+        cachedProducts = null
+        cachedCategories = null
+    }
 }
