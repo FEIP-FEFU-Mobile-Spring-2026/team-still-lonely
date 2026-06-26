@@ -1,6 +1,5 @@
 package com.example.project1.ui.catalog
 
-import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -15,7 +14,6 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.project1.R
 import com.example.project1.data.Product
 import com.example.project1.data.Resource
-import com.example.project1.ui.productdetail.ProductDetailActivity
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 
@@ -136,18 +134,8 @@ class CatalogFragment : Fragment() {
         adapter = ProductAdapter(
             products = products,
             onItemClick = { product ->
-                val intent = Intent(requireContext(), ProductDetailActivity::class.java).apply {
-                    putExtra("product_id", product.id)
-                    putExtra("product_name", product.name)
-                    putExtra("product_description", product.longDescription)
-                    putExtra("product_price", product.price)
-                    putExtra("product_image", product.imageUrl)
-                    putExtra("product_category", product.categoryId)
-                    putExtra("product_sizes", product.sizes.map { it.name }.toTypedArray())
-                    putExtra("product_material", product.material)
-                    putExtra("product_country", product.countryOfOrigin)
-                }
-                startActivity(intent)
+                val bottomSheet = ProductBottomSheet.newInstance(product)
+                bottomSheet.show(parentFragmentManager, "ProductBottomSheet")
             }
         )
         recyclerView.adapter = adapter

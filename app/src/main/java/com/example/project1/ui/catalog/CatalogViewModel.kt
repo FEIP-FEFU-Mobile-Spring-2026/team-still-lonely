@@ -11,6 +11,7 @@ import com.example.project1.data.Product
 import com.example.project1.data.ProductRepository
 import com.example.project1.data.Resource
 import kotlinx.coroutines.launch
+import com.example.project1.ui.catalog.ProductBottomSheet
 
 class CatalogViewModel(application: Application) : AndroidViewModel(application) {
 

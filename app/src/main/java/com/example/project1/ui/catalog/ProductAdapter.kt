@@ -29,12 +29,13 @@ class ProductAdapter(
         private val price: TextView = itemView.findViewById(R.id.productPrice)
         private val image: ImageView = itemView.findViewById(R.id.productImage)
         private val counterLayout: LinearLayout = itemView.findViewById(R.id.counterLayout)
+        private val tagNew: TextView = itemView.findViewById(R.id.tagNew)
 
         fun bind(product: Product) {
             name.text = product.name
             description.text = product.shortDescription
-            // Форматируем цену в рублях из копеек
             price.text = PriceFormatter.formatRublesFromKopecks(product.priceInKopecks)
+            tagNew.visibility = if (product.isNew) View.VISIBLE else View.GONE
 
             Glide.with(itemView.context)
                 .load(product.imageUrl)
@@ -47,7 +48,7 @@ class ProductAdapter(
                         target: Target<Drawable>,
                         isFirstResource: Boolean
                     ): Boolean {
-                        Log.e("GlideError", "Ошибка загрузки: ${product.imageUrl}", e)
+                        Log.e("GlideError", "Ошибка загрузки изображения: ${product.imageUrl}", e)
                         return false
                     }
 
@@ -63,9 +64,7 @@ class ProductAdapter(
                 })
                 .into(image)
 
-            // Счетчик скрыт в каталоге
             counterLayout.visibility = View.GONE
-
             itemView.setOnClickListener { onItemClick(product) }
         }
     }
