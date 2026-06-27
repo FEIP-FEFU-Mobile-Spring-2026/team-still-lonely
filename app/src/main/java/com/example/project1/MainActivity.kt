@@ -72,6 +72,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    fun openCatalog() {
+        findViewById<BottomNavigationView>(R.id.bottom_nav_menu).selectedItemId =
+            R.id.navigation_catalog
+    }
+
     private fun showCatalogFragment() {
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, CatalogFragment())

@@ -15,6 +15,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.project1.MainActivity
 import com.example.project1.R
 import com.example.project1.data.CartItem
 import com.example.project1.data.CartManager
@@ -185,10 +186,8 @@ class CartFragment : Fragment() {
             dialog.dismiss()
             lifecycleScope.launch {
                 CartManager.clearCart()
-                loadCartItems()
+                (activity as? MainActivity)?.openCatalog()
             }
-            // Возврат на главную (если нужно раскомментировать)
-            // (activity as? MainActivity)?.showCatalogFragment()
         }
 
         dialog.show()
