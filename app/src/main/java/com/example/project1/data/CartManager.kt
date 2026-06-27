@@ -18,7 +18,6 @@ object CartManager {
     private lateinit var database: AppDatabase
     private var isInitialized = false
 
-    // LiveData для количества товаров
     private val _totalQuantity = MutableLiveData(0)
     val totalQuantity: LiveData<Int> = _totalQuantity
 
@@ -38,31 +37,31 @@ object CartManager {
         }
     }
 
-    suspend fun addToCart(productId: String, sizeName: String, quantity: Int = 1) {
+    suspend fun addToCart(productId: String, sizeId: String, quantity: Int = 1) {
         withContext(Dispatchers.IO) {
-            val existing = cartDao.getByProductAndSize(productId, sizeName)
+            val existing = cartDao.getByProductAndSize(productId, sizeId)
             if (existing != null) {
-                cartDao.updateQuantity(productId, sizeName, existing.quantity + quantity)
+                cartDao.updateQuantity(productId, sizeId, existing.quantity + quantity)
             } else {
-                cartDao.insert(CartEntity(productId = productId, sizeName = sizeName, quantity = quantity))
+                cartDao.insert(CartEntity(productId = productId, sizeId = sizeId, quantity = quantity))
             }
             refreshTotalQuantity()
         }
     }
 
-    suspend fun removeFromCart(productId: String, sizeName: String) {
+    suspend fun removeFromCart(productId: String, sizeId: String) {
         withContext(Dispatchers.IO) {
-            cartDao.deleteByProductAndSize(productId, sizeName)
+            cartDao.deleteByProductAndSize(productId, sizeId)
             refreshTotalQuantity()
         }
     }
 
-    suspend fun updateQuantity(productId: String, sizeName: String, newQuantity: Int) {
+    suspend fun updateQuantity(productId: String, sizeId: String, newQuantity: Int) {
         withContext(Dispatchers.IO) {
             if (newQuantity <= 0) {
-                removeFromCart(productId, sizeName)
+                removeFromCart(productId, sizeId)
             } else {
-                cartDao.updateQuantity(productId, sizeName, newQuantity)
+                cartDao.updateQuantity(productId, sizeId, newQuantity)
                 refreshTotalQuantity()
             }
         }
@@ -82,7 +81,7 @@ object CartManager {
             if (product != null) {
                 CartItem(
                     product = product,
-                    sizeName = entity.sizeName,
+                    sizeId = entity.sizeId,
                     quantity = entity.quantity
                 )
             } else {
@@ -99,9 +98,12 @@ object CartManager {
 
 data class CartItem(
     val product: Product,
-    val sizeName: String,
+    val sizeId: String,
     val quantity: Int
 ) {
+    val sizeName: String
+        get() = product.sizes.find { it.id == sizeId }?.name ?: sizeId
+
     val totalPrice: Double
         get() = product.price * quantity
 }

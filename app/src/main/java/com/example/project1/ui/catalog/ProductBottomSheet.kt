@@ -27,7 +27,7 @@ import kotlinx.coroutines.launch
 class ProductBottomSheet : BottomSheetDialogFragment() {
 
     private lateinit var product: Product
-    private var selectedSize: String? = null
+    private var selectedSizeId: String? = null
 
     companion object {
         private const val ARG_PRODUCT = "product"
@@ -89,9 +89,9 @@ class ProductBottomSheet : BottomSheetDialogFragment() {
 
         // Кнопка "В корзину"
         addToCartButton.setOnClickListener {
-            val size = selectedSize ?: "one_size"
+            val sizeId = selectedSizeId ?: "one_size"
             lifecycleScope.launch {
-                CartManager.addToCart(product.id, size, 1)
+                CartManager.addToCart(product.id, sizeId, 1)
                 Toast.makeText(requireContext(), "Товар добавлен в корзину", Toast.LENGTH_SHORT).show()
                 dismiss()
             }
@@ -139,31 +139,26 @@ class ProductBottomSheet : BottomSheetDialogFragment() {
         selectedSizeText: TextView,
         addToCartButton: Button
     ) {
-        val sizes = product.sizes.map { it.name }
-
-        if (sizes.isEmpty()) {
+        if (product.sizes.isEmpty()) {
             selectedSizeText.text = "Размер: стандартный"
             selectedSizeText.visibility = View.VISIBLE
             addToCartButton.isEnabled = true
-            selectedSize = "one_size"
+            selectedSizeId = "one_size"
             return
         }
 
         sizesContainer.removeAllViews()
 
-        sizes.forEach { sizeName ->
+        product.sizes.forEach { size ->
             val button = MaterialButton(requireContext(), null, com.google.android.material.R.attr.materialButtonOutlinedStyle)
             button.layoutParams = LinearLayout.LayoutParams(
                 0,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 1f
             )
-            button.text = sizeName
+            button.text = size.name
             button.setPadding(8, 8, 8, 8)
             button.isAllCaps = false
-
-            // Проверка наличия в корзине убрана, т.к. isInCart требует suspend и корутину
-            // Если нужно — можно добавить позже через lifecycleScope
 
             button.setOnClickListener {
                 sizesContainer.children.forEach { child ->
@@ -172,8 +167,8 @@ class ProductBottomSheet : BottomSheetDialogFragment() {
                     }
                 }
                 button.isChecked = true
-                selectedSize = sizeName
-                selectedSizeText.text = "Размер: $sizeName"
+                selectedSizeId = size.id
+                selectedSizeText.text = "Размер: ${size.name}"
                 selectedSizeText.visibility = View.VISIBLE
                 addToCartButton.isEnabled = true
             }

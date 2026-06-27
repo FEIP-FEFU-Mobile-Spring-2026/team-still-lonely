@@ -87,13 +87,13 @@ class CartFragment : Fragment() {
                 cartItems = items,
                 onQuantityChange = { item, newQuantity ->
                     lifecycleScope.launch {
-                        CartManager.updateQuantity(item.product.id, item.sizeName, newQuantity)
+                        CartManager.updateQuantity(item.product.id, item.sizeId, newQuantity)
                         loadCartItems()
                     }
                 },
                 onRemove = { item ->
                     lifecycleScope.launch {
-                        CartManager.removeFromCart(item.product.id, item.sizeName)
+                        CartManager.removeFromCart(item.product.id, item.sizeId)
                         loadCartItems()
                     }
                 }

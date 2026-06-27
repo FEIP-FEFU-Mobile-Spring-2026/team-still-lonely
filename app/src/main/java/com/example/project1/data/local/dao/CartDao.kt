@@ -11,17 +11,17 @@ interface CartDao {
     @Query("SELECT * FROM cart_items")
     suspend fun getAll(): List<CartEntity>
 
-    @Query("SELECT * FROM cart_items WHERE productId = :productId AND sizeName = :sizeName")
-    suspend fun getByProductAndSize(productId: String, sizeName: String): CartEntity?
+    @Query("SELECT * FROM cart_items WHERE productId = :productId AND sizeId = :sizeId")
+    suspend fun getByProductAndSize(productId: String, sizeId: String): CartEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(entity: CartEntity)
 
-    @Query("UPDATE cart_items SET quantity = :quantity WHERE productId = :productId AND sizeName = :sizeName")
-    suspend fun updateQuantity(productId: String, sizeName: String, quantity: Int)
+    @Query("UPDATE cart_items SET quantity = :quantity WHERE productId = :productId AND sizeId = :sizeId")
+    suspend fun updateQuantity(productId: String, sizeId: String, quantity: Int)
 
-    @Query("DELETE FROM cart_items WHERE productId = :productId AND sizeName = :sizeName")
-    suspend fun deleteByProductAndSize(productId: String, sizeName: String)
+    @Query("DELETE FROM cart_items WHERE productId = :productId AND sizeId = :sizeId")
+    suspend fun deleteByProductAndSize(productId: String, sizeId: String)
 
     @Query("DELETE FROM cart_items")
     suspend fun clearAll()

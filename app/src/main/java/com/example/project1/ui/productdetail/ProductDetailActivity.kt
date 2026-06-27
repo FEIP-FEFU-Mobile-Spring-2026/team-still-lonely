@@ -22,7 +22,7 @@ import kotlinx.coroutines.launch
 class ProductDetailActivity : AppCompatActivity() {
 
     private var currentProduct: Product? = null
-    private var selectedSize: String? = null
+    private var selectedSizeId: String? = null
     private lateinit var selectedSizeText: TextView
     private lateinit var sizesContainer: LinearLayout
     private lateinit var addToCartButton: Button
@@ -94,7 +94,7 @@ class ProductDetailActivity : AppCompatActivity() {
             sizeSectionTitle.visibility = View.GONE
 
             addToCartButton.isEnabled = true
-            selectedSize = "one_size"
+            selectedSizeId = "one_size"
             selectedSizeText.text = "Размер: стандартный"
         } else {
             // Для одежды показываем выбор размера
@@ -111,12 +111,12 @@ class ProductDetailActivity : AppCompatActivity() {
 
         // Обработка нажатия на кнопку добавления в корзину
         addToCartButton.setOnClickListener {
-            val size = selectedSize
+            val sizeId = selectedSizeId
             val product = currentProduct
 
-            if (size != null && product != null) {
+            if (sizeId != null && product != null) {
                 lifecycleScope.launch {
-                    CartManager.addToCart(product.id, size, 1)
+                    CartManager.addToCart(product.id, sizeId, 1)
                     Toast.makeText(
                         this@ProductDetailActivity,
                         "Товар добавлен в корзину",
@@ -130,16 +130,14 @@ class ProductDetailActivity : AppCompatActivity() {
 
     private fun createSizeButtons() {
         val product = currentProduct ?: return
-        val sizes = product.sizes.map { it.name }
-
-        for (size in sizes) {
+        for (size in product.sizes) {
             val button = MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle)
             button.layoutParams = LinearLayout.LayoutParams(
                 0,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 1f
             )
-            button.text = size
+            button.text = size.name
             button.setPadding(8, 8, 8, 8)
 
             button.setOnClickListener {
@@ -149,8 +147,8 @@ class ProductDetailActivity : AppCompatActivity() {
                 }
 
                 button.isChecked = true
-                selectedSize = size
-                selectedSizeText.text = "Размер: $size"
+                selectedSizeId = size.id
+                selectedSizeText.text = "Размер: ${size.name}"
                 addToCartButton.isEnabled = true
             }
 

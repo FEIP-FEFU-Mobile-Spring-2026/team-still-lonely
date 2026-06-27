@@ -8,6 +8,6 @@ data class CartEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val productId: String,
-    val sizeName: String,
+    val sizeId: String,
     val quantity: Int
 )
