@@ -1,0 +1,99 @@
+ .gitignore                                         |   11 [32m+[m
+ README.md                                          |   31 [32m+[m[31m-[m
+ app/.gitignore                                     |    1 [32m+[m
+ app/build.gradle.kts                               |   73 [32m+[m
+ app/proguard-rules.pro                             |   21 [32m+[m
+ .../example/project1/ExampleInstrumentedTest.kt    |   22 [32m+[m
+ app/src/main/AndroidManifest.xml                   |   32 [32m+[m
+ .../main/java/com/example/project1/MainActivity.kt |   89 [32m+[m
+ .../java/com/example/project1/data/ApiProduct.kt   |   17 [32m+[m
+ .../java/com/example/project1/data/CartManager.kt  |  117 [32m++[m
+ .../example/project1/data/CategoryTranslator.kt    |   18 [32m+[m
+ .../main/java/com/example/project1/data/Data.kt    |   34 [32m+[m
+ .../com/example/project1/data/ProductRepository.kt |  137 [32m++[m
+ .../java/com/example/project1/data/Resource.kt     |   19 [32m+[m
+ .../com/example/project1/data/local/AppDatabase.kt |   44 [32m+[m
+ .../com/example/project1/data/local/dao/CartDao.kt |   41 [32m+[m
+ .../example/project1/data/local/dao/CategoryDao.kt |   19 [32m+[m
+ .../example/project1/data/local/dao/ProductDao.kt  |   19 [32m+[m
+ .../project1/data/local/entities/CartEntity.kt     |   13 [32m+[m
+ .../project1/data/local/entities/CategoryEntity.kt |   14 [32m+[m
+ .../project1/data/local/entities/ProductEntity.kt  |   66 [32m+[m
+ .../com/example/project1/data/remote/ApiService.kt |   12 [32m+[m
+ .../project1/data/remote/CatalogResponse.kt        |   32 [32m+[m
+ .../example/project1/data/remote/RetrofitClient.kt |   35 [32m+[m
+ .../example/project1/ui/catalog/CatalogFragment.kt |  206 [32m+++[m
+ .../project1/ui/catalog/CatalogViewModel.kt        |  114 [32m++[m
+ .../project1/ui/catalog/CatalogViewModelFactory.kt |   17 [32m+[m
+ .../example/project1/ui/catalog/ProductAdapter.kt  |   92 [32m++[m
+ .../project1/ui/catalog/ProductBottomSheet.kt      |  204 [32m+++[m
+ .../project1/ui/productdetail/CartAdapter.kt       |   90 [32m++[m
+ .../project1/ui/productdetail/CartFragment.kt      |  219 [32m+++[m
+ .../ui/productdetail/ProductDetailActivity.kt      |  162 [32m++[m
+ .../com/example/project1/utils/NetworkMonitor.kt   |   49 [32m+[m
+ .../com/example/project1/utils/PriceFormatter.kt   |   16 [32m+[m
+ app/src/main/res/color/chip_colors.xml             |    7 [32m+[m
+ .../main/res/drawable/cart_badge_background.xml    |    6 [32m+[m
+ app/src/main/res/drawable/counter_background.xml   |    6 [32m+[m
+ .../res/drawable/dialog_success_background.xml     |    9 [32m+[m
+ app/src/main/res/drawable/error_image.xml          |   28 [32m+[m
+ app/src/main/res/drawable/ic_cart.xml              |    5 [32m+[m
+ app/src/main/res/drawable/ic_catalog.xml           |    5 [32m+[m
+ app/src/main/res/drawable/ic_check_circle.xml      |   21 [32m+[m
+ .../main/res/drawable/ic_launcher_background.xml   |  170 [32m++[m
+ .../main/res/drawable/ic_launcher_foreground.xml   |   30 [32m+[m
+ app/src/main/res/drawable/placeholder_image.xml    |    7 [32m+[m
+ app/src/main/res/layout/activity_catalog.xml       |  102 [32m++[m
+ app/src/main/res/layout/activity_main.xml          |   22 [32m+[m
+ .../main/res/layout/activity_product_detail.xml    |  131 [32m++[m
+ .../res/layout/bottom_sheet_product_detail.xml     |  148 [32m++[m
+ app/src/main/res/layout/dialog_checkout.xml        |   55 [32m+[m
+ app/src/main/res/layout/dialog_order_success.xml   |   46 [32m+[m
+ app/src/main/res/layout/fragment_cart.xml          |  101 [32m++[m
+ app/src/main/res/layout/fragment_cart_manager.xml  |   14 [32m+[m
+ app/src/main/res/layout/fragment_catalog.xml       |   14 [32m+[m
+ .../main/res/layout/fragment_product_adapter.xml   |   14 [32m+[m
+ .../layout/fragment_product_detail_activity.xml    |   14 [32m+[m
+ app/src/main/res/layout/item_cart.xml              |  151 [32m++[m
+ app/src/main/res/layout/item_chip.xml              |    9 [32m+[m
+ app/src/main/res/layout/item_product.xml           |  139 [32m++[m
+ app/src/main/res/layout/shimmer_product_item.xml   |   50 [32m+[m
+ app/src/main/res/layout/shimmer_product_list.xml   |   32 [32m+[m
+ app/src/main/res/menu/bottom_nav_menu.xml          |   11 [32m+[m
+ app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml |    6 [32m+[m
+ .../res/mipmap-anydpi-v26/ic_launcher_round.xml    |    6 [32m+[m
+ app/src/main/res/mipmap-hdpi/ic_launcher.webp      |  Bin [31m0[m -> [32m1404[m bytes
+ .../main/res/mipmap-hdpi/ic_launcher_round.webp    |  Bin [31m0[m -> [32m2898[m bytes
+ app/src/main/res/mipmap-mdpi/ic_launcher.webp      |  Bin [31m0[m -> [32m982[m bytes
+ .../main/res/mipmap-mdpi/ic_launcher_round.webp    |  Bin [31m0[m -> [32m1772[m bytes
+ app/src/main/res/mipmap-xhdpi/ic_launcher.webp     |  Bin [31m0[m -> [32m1900[m bytes
+ .../main/res/mipmap-xhdpi/ic_launcher_round.webp   |  Bin [31m0[m -> [32m3918[m bytes
+ app/src/main/res/mipmap-xxhdpi/ic_launcher.webp    |  Bin [31m0[m -> [32m2884[m bytes
+ .../main/res/mipmap-xxhdpi/ic_launcher_round.webp  |  Bin [31m0[m -> [32m5914[m bytes
+ app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp   |  Bin [31m0[m -> [32m3844[m bytes
+ .../main/res/mipmap-xxxhdpi/ic_launcher_round.webp |  Bin [31m0[m -> [32m7778[m bytes
+ app/src/main/res/raw/products.json                 | 1697 [32m++++++++++++++++++++[m
+ app/src/main/res/values-night/themes.xml           |    7 [32m+[m
+ app/src/main/res/values/colors.xml                 |   14 [32m+[m
+ app/src/main/res/values/shapes.xml                 |    9 [32m+[m
+ app/src/main/res/values/strings.xml                |    5 [32m+[m
+ app/src/main/res/values/themes.xml                 |    9 [32m+[m
+ app/src/main/res/xml/backup_rules.xml              |   13 [32m+[m
+ app/src/main/res/xml/data_extraction_rules.xml     |   19 [32m+[m
+ .../com/example/project1/CartBusinessLogicTest.kt  |   26 [32m+[m
+ .../com/example/project1/CategoryTranslatorTest.kt |   46 [32m+[m
+ .../java/com/example/project1/ExampleUnitTest.kt   |   16 [32m+[m
+ .../java/com/example/project1/ModelMappingTest.kt  |   46 [32m+[m
+ .../com/example/project1/PriceFormatterTest.kt     |   31 [32m+[m
+ .../example/project1/ProductBusinessLogicTest.kt   |   41 [32m+[m
+ build.gradle.kts                                   |   21 [32m+[m
+ checklist.md                                       |   45 [32m+[m
+ gradle.properties                                  |   32 [32m+[m
+ gradle/gradle-daemon-jvm.properties                |   12 [32m+[m
+ gradle/libs.versions.toml                          |   28 [32m+[m
+ gradle/wrapper/gradle-wrapper.jar                  |  Bin [31m0[m -> [32m45457[m bytes
+ gradle/wrapper/gradle-wrapper.properties           |    9 [32m+[m
+ gradlew                                            |  251 [32m+++[m
+ gradlew.bat                                        |   94 [32m++[m
+ settings.gradle.kts                                |   26 [32m+[m
+ 98 files changed, 5924 insertions(+), 18 deletions(-)
