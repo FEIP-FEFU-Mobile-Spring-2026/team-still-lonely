@@ -15,16 +15,17 @@ import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import com.bumptech.glide.load.DataSource
-import com.bumptech.glide.load.engine.GlideException
-import com.bumptech.glide.request.RequestListener
-import com.bumptech.glide.request.target.Target
 import com.example.project1.R
 import com.example.project1.data.CartManager
 import com.example.project1.data.CartManager.CartItem
 import com.example.project1.data.Product
+import com.example.project1.utils.PriceFormatter
 import android.graphics.drawable.Drawable
 import android.util.Log
+import com.bumptech.glide.load.DataSource
+import com.bumptech.glide.load.engine.GlideException
+import com.bumptech.glide.request.RequestListener
+import com.bumptech.glide.request.target.Target
 
 class CartFragment : Fragment() {
 
@@ -69,7 +70,7 @@ class CartFragment : Fragment() {
             if (selectedItems.isNotEmpty()) {
                 Toast.makeText(
                     requireContext(),
-                    "Оформление заказа на сумму ${String.format("$%,.2f", total)}",
+                    "Оформление заказа на сумму ${PriceFormatter.formatRubles(total)}",
                     Toast.LENGTH_SHORT
                 ).show()
             }
@@ -112,13 +113,17 @@ class CartFragment : Fragment() {
                     CartManager.removeFromCart(item.product.id, item.size)
                     updateCartUI()
                 },
-                onItemClick = { product ->  // НОВЫЙ КОЛБЭК для перехода на детальный экран
+                onItemClick = { product ->
                     val intent = Intent(requireContext(), ProductDetailActivity::class.java).apply {
                         putExtra("product_id", product.id)
                         putExtra("product_name", product.name)
-                        putExtra("product_description", product.description)
+                        putExtra("product_description", product.longDescription)
                         putExtra("product_price", product.price)
                         putExtra("product_image", product.imageUrl)
+                        putExtra("product_category", product.categoryId)
+                        putExtra("product_sizes", product.sizes.map { it.name }.toTypedArray())
+                        putExtra("product_material", product.material)
+                        putExtra("product_country", product.countryOfOrigin)
                     }
                     startActivity(intent)
                 }
@@ -132,7 +137,7 @@ class CartFragment : Fragment() {
             selectedCountText.text = "$selectedCount/${cartItems.size}"
 
             val total = CartManager.getTotalPrice()
-            totalPriceTextView.text = "Итого: ${String.format("$%,.2f", total)}"
+            totalPriceTextView.text = "Итого: ${PriceFormatter.formatRubles(total)}"
         }
     }
 }
@@ -142,7 +147,7 @@ class CartAdapter(
     private val onItemSelected: (CartItem) -> Unit,
     private val onQuantityChange: (CartItem, Int) -> Unit,
     private val onRemove: (CartItem) -> Unit,
-    private val onItemClick: (Product) -> Unit  // НОВЫЙ ПАРАМЕТР
+    private val onItemClick: (Product) -> Unit
 ) : RecyclerView.Adapter<CartAdapter.CartViewHolder>() {
 
     class CartViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -162,13 +167,13 @@ class CartAdapter(
             onItemSelected: (CartItem) -> Unit,
             onQuantityChange: (CartItem, Int) -> Unit,
             onRemove: (CartItem) -> Unit,
-            onItemClick: (Product) -> Unit  // НОВЫЙ ПАРАМЕТР
+            onItemClick: (Product) -> Unit
         ) {
             val product = item.product
 
             name.text = product.name
-            description.text = product.description
-            price.text = String.format("$%,.2f", product.price)
+            description.text = product.shortDescription
+            price.text = PriceFormatter.formatRublesFromKopecks(product.priceInKopecks)
             sizeText.text = "Размер: ${item.size}"
             quantityText.text = item.quantity.toString()
 
@@ -179,7 +184,6 @@ class CartAdapter(
                 onItemSelected(item)
             }
 
-            // ЗАГРУЗКА ИЗОБРАЖЕНИЯ
             Glide.with(itemView.context)
                 .load(product.imageUrl)
                 .placeholder(R.drawable.placeholder_image)
@@ -230,18 +234,7 @@ class CartAdapter(
                 onRemove(item)
             }
 
-            // ДОБАВЛЕНО: клик по всей карточке открывает детальный экран
             itemView.setOnClickListener {
-                onItemClick(product)
-            }
-
-            // ДОБАВЛЕНО: клик по изображению тоже открывает детальный экран
-            image.setOnClickListener {
-                onItemClick(product)
-            }
-
-            // ДОБАВЛЕНО: клик по названию тоже открывает детальный экран
-            name.setOnClickListener {
                 onItemClick(product)
             }
         }
@@ -259,7 +252,7 @@ class CartAdapter(
             onItemSelected,
             onQuantityChange,
             onRemove,
-            onItemClick  // НОВЫЙ ПАРАМЕТР
+            onItemClick
         )
     }
 

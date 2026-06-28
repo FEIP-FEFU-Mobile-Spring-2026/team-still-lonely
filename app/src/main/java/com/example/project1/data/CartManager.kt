@@ -1,117 +1,130 @@
 package com.example.project1.data
 
+import android.content.Context
 import android.util.Log
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 
 object CartManager {
-    // Ключ = "productId_size" (например: "1_XL")
+    private const val PREFS_NAME = "cart_prefs"
+    private const val KEY_CART_ITEMS = "cart_items"
+
+    private val gson = Gson()
+    private var prefs: Context? = null
     private val cartItems = mutableMapOf<String, CartItem>()
 
     data class CartItem(
         val product: Product,
         val size: String,
         var quantity: Int = 1,
-        var isSelected: Boolean = true  // По умолчанию выбран
+        var isSelected: Boolean = true
     ) {
-        // Уникальный ключ для этого товара с размером
         val key: String
             get() = "${product.id}_$size"
     }
 
-    // Добавить товар в корзину с конкретным размером
+    fun init(context: Context) {
+        if (prefs != null) return
+        prefs = context.applicationContext
+        loadFromStorage()
+    }
+
     fun addToCart(product: Product, size: String) {
         val key = "${product.id}_$size"
         val existingItem = cartItems[key]
 
         if (existingItem == null) {
-            cartItems[key] = CartItem(product, size, 1, true) // Новый товар выбран по умолчанию
+            cartItems[key] = CartItem(product, size, 1, true)
             Log.d("CartManager", "Товар добавлен: ${product.name} ($size)")
         } else {
             existingItem.quantity++
             Log.d("CartManager", "Количество увеличено: ${product.name} ($size) = ${existingItem.quantity}")
         }
+        persist()
     }
 
-    // Изменить количество товара конкретного размера
-    fun updateQuantity(productId: Int, size: String, newQuantity: Int) {
+    fun updateQuantity(productId: String, size: String, newQuantity: Int) {
         val key = "${productId}_$size"
         if (newQuantity <= 0) {
             cartItems.remove(key)
         } else {
             cartItems[key]?.quantity = newQuantity
         }
+        persist()
     }
 
-    // Переключить выбор товара
-    fun toggleSelection(productId: Int, size: String): Boolean {
+    fun toggleSelection(productId: String, size: String): Boolean {
         val key = "${productId}_$size"
         val item = cartItems[key]
         return if (item != null) {
             item.isSelected = !item.isSelected
+            persist()
             item.isSelected
         } else {
             false
         }
     }
 
-    // Установить выбор для всех товаров
     fun selectAll(select: Boolean) {
         cartItems.values.forEach { it.isSelected = select }
+        persist()
     }
 
-    // Проверить, все ли товары выбраны
-    fun isAllSelected(): Boolean {
-        return cartItems.values.all { it.isSelected }
+    fun isAllSelected(): Boolean = cartItems.values.all { it.isSelected }
+
+    fun getSelectedCount(): Int = cartItems.values.count { it.isSelected }
+
+    fun getSelectedItems(): List<CartItem> = cartItems.values.filter { it.isSelected }
+
+    fun removeFromCart(productId: String, size: String) {
+        cartItems.remove("${productId}_$size")
+        persist()
     }
 
-    // Получить количество выбранных товаров
-    fun getSelectedCount(): Int {
-        return cartItems.values.count { it.isSelected }
+    fun getCartItems(): List<CartItem> = cartItems.values.toList()
+
+    fun getItemQuantity(productId: String, size: String): Int {
+        return cartItems["${productId}_$size"]?.quantity ?: 0
     }
 
-    // Получить выбранные товары
-    fun getSelectedItems(): List<CartItem> {
-        return cartItems.values.filter { it.isSelected }
+    fun isInCart(productId: String, size: String): Boolean {
+        return cartItems.containsKey("${productId}_$size")
     }
 
-    // Удалить товар конкретного размера
-    fun removeFromCart(productId: Int, size: String) {
-        val key = "${productId}_$size"
-        cartItems.remove(key)
-    }
-
-    // Получить все товары в корзине
-    fun getCartItems(): List<CartItem> {
-        return cartItems.values.toList()
-    }
-
-    // Получить количество конкретного товара конкретного размера
-    fun getItemQuantity(productId: Int, size: String): Int {
-        val key = "${productId}_$size"
-        return cartItems[key]?.quantity ?: 0
-    }
-
-    // Проверить, есть ли товар конкретного размера в корзине
-    fun isInCart(productId: Int, size: String): Boolean {
-        val key = "${productId}_$size"
-        return cartItems.containsKey(key)
-    }
-
-    // Очистить корзину
     fun clearCart() {
         cartItems.clear()
+        persist()
     }
 
-    // Получить общую стоимость ТОЛЬКО выбранных товаров
     fun getTotalPrice(): Double {
         return cartItems.values
             .filter { it.isSelected }
             .sumOf { it.product.price * it.quantity }
     }
 
-    // Получить общее количество выбранных товаров
     fun getTotalItemCount(): Int {
         return cartItems.values
             .filter { it.isSelected }
             .sumOf { it.quantity }
+    }
+
+    private fun persist() {
+        val context = prefs ?: return
+        val json = gson.toJson(cartItems.values.toList())
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_CART_ITEMS, json)
+            .apply()
+    }
+
+    private fun loadFromStorage() {
+        val context = prefs ?: return
+        val json = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getString(KEY_CART_ITEMS, null) ?: return
+
+        val type = object : TypeToken<List<CartItem>>() {}.type
+        val stored: List<CartItem> = gson.fromJson(json, type) ?: return
+        cartItems.clear()
+        stored.forEach { item -> cartItems[item.key] = item }
     }
 }

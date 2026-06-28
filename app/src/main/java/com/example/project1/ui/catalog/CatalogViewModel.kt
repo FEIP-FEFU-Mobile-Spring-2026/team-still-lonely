@@ -1,18 +1,20 @@
 package com.example.project1.ui.catalog
 
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.project1.data.Category
 import com.example.project1.data.CategoryTranslator
 import com.example.project1.data.Product
 import com.example.project1.data.ProductRepository
 import com.example.project1.data.Resource
 import kotlinx.coroutines.launch
 
-class CatalogViewModel : ViewModel() {
+class CatalogViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository = ProductRepository()
+    private val repository = ProductRepository(application.applicationContext)
 
     private val _products = MutableLiveData<Resource<List<Product>>>()
     val products: LiveData<Resource<List<Product>>> = _products
@@ -21,71 +23,65 @@ class CatalogViewModel : ViewModel() {
     val categories: LiveData<Resource<List<String>>> = _categories
 
     private var allProducts: List<Product> = emptyList()
-    private var currentFilter: String = "Все"
+    private var allCategories: List<Category> = emptyList()
+    private var currentFilter: String = "Новинки"
+    private var isDataLoaded = false
 
     init {
-        loadProducts()
-        loadCategories()
+        loadData()
     }
 
-    fun loadProducts() {
+    fun loadData() {
         viewModelScope.launch {
-            _products.value = Resource.Loading as Resource<List<Product>>
-            try {
-                val result = repository.getAllProducts()
-                if (result.isSuccess) {
-                    allProducts = result.getOrNull() ?: emptyList()
-                    applyFilter(currentFilter)
-                } else {
-                    _products.value = Resource.Error(result.exceptionOrNull()?.message ?: "Ошибка")
-                }
-            } catch (e: Exception) {
-                _products.value = Resource.Error(e.message ?: "Ошибка")
-            }
-        }
-    }
+            _products.value = Resource.loading()
+            _categories.value = Resource.loading()
 
-    fun loadCategories() {
-        viewModelScope.launch {
-            _categories.value = Resource.Loading as Resource<List<String>>
             try {
-                val result = repository.getCategories()
-                if (result.isSuccess) {
-                    val originalCategories = result.getOrNull() ?: emptyList()
-                    // Переводим категории на русский
-                    val translatedCategories = CategoryTranslator.getTranslatedCategories(originalCategories)
+                val categoriesResult = repository.getCategories()
+                if (categoriesResult.isSuccess) {
+                    allCategories = categoriesResult.getOrNull() ?: emptyList()
+                    val translatedCategories = CategoryTranslator.getTranslatedCategories(allCategories)
                     _categories.value = Resource.Success(translatedCategories)
                 } else {
-                    _categories.value = Resource.Error(result.exceptionOrNull()?.message ?: "Ошибка")
+                    _categories.value = Resource.Error(
+                        categoriesResult.exceptionOrNull()?.message ?: "Ошибка загрузки категорий"
+                    )
+                }
+
+                val productsResult = repository.getAllProducts()
+                if (productsResult.isSuccess) {
+                    allProducts = productsResult.getOrNull() ?: emptyList()
+                    isDataLoaded = true
+                    applyFilter(currentFilter)
+                } else {
+                    _products.value = Resource.Error(
+                        productsResult.exceptionOrNull()?.message ?: "Ошибка загрузки товаров"
+                    )
                 }
             } catch (e: Exception) {
-                _categories.value = Resource.Error(e.message ?: "Ошибка")
+                _products.value = Resource.Error(e.message ?: "Ошибка загрузки данных")
+                _categories.value = Resource.Error(e.message ?: "Ошибка загрузки данных")
             }
         }
     }
 
     fun filterByCategory(russianCategory: String) {
         currentFilter = russianCategory
-
-        // Для фильтрации используем оригинальные названия
-        val filterForApi = when (russianCategory) {
-            "Все" -> "Все"
-            "Новинки" -> "Новинки"
-            else -> CategoryTranslator.reverseTranslate(russianCategory)
+        if (isDataLoaded) {
+            applyFilter(russianCategory)
         }
-
-        applyFilter(filterForApi, isOriginal = russianCategory !in listOf("Все", "Новинки"))
     }
 
-    private fun applyFilter(category: String, isOriginal: Boolean = false) {
-        val filtered = when {
-            category == "Все" -> allProducts
-            category == "Новинки" -> allProducts.take(3)
+    private fun applyFilter(russianCategory: String) {
+        val filtered = when (russianCategory) {
+            "Новинки" -> allProducts.filter { it.isNew }
+            "Все" -> allProducts
             else -> {
-                if (isOriginal) {
-                    allProducts.filter { it.category == category }
+                val categoryId = CategoryTranslator.getCategoryId(russianCategory, allCategories)
+                if (categoryId != null) {
+                    allProducts.filter { it.categoryId == categoryId }
                 } else {
-                    allProducts.filter { it.category == category }
+                    emptyList()
                 }
             }
         }
@@ -93,7 +89,20 @@ class CatalogViewModel : ViewModel() {
     }
 
     fun refresh() {
-        loadProducts()
-        loadCategories()
+        repository.clearCache()
+        loadData()
+    }
+
+    fun getCurrentFilter(): String = currentFilter
+
+    fun setFilter(category: String) {
+        currentFilter = category
+        if (isDataLoaded) {
+            applyFilter(category)
+        }
+    }
+
+    fun getProductById(id: String): Product? {
+        return allProducts.find { it.id == id }
     }
 }
