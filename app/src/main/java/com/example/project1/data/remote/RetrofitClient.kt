@@ -1,4 +1,4 @@
-package com.example.project1.data
+package com.example.project1.data.remote
 
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -8,7 +8,8 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    private const val BASE_URL = "https://fakestoreapi.com/"
+    private const val BASE_URL = "https://fefu2026spring.deploy.feip.dev/"
+    const val TOKEN = "Cmt7wdwFgDIi1_SRX8hlJIExs0jJKPr4axflLpExAxM"
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
