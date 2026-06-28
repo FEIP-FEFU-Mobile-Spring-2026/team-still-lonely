@@ -1,6 +1,7 @@
 package com.example.project1.ui.productdetail
 
 import android.os.Bundle
+import android.view.View
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -12,8 +13,9 @@ import com.bumptech.glide.Glide
 import com.example.project1.R
 import com.example.project1.data.CartManager
 import com.example.project1.data.Product
+import com.example.project1.data.Size
+import com.example.project1.utils.PriceFormatter
 import com.google.android.material.button.MaterialButton
-import android.view.View
 
 class ProductDetailActivity : AppCompatActivity() {
 
@@ -22,29 +24,37 @@ class ProductDetailActivity : AppCompatActivity() {
     private lateinit var selectedSizeText: TextView
     private lateinit var sizesContainer: LinearLayout
     private lateinit var addToCartButton: Button
-    private lateinit var sizeSectionTitle: TextView  // Заголовок "Выберите размер"
+    private lateinit var sizeSectionTitle: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_product_detail)
 
         // Получаем данные из Intent
-        val productId = intent.getIntExtra("product_id", -1)
+        val productId = intent.getStringExtra("product_id") ?: ""
         val productName = intent.getStringExtra("product_name") ?: "Название не указано"
         val productDescription = intent.getStringExtra("product_description") ?: "Описание отсутствует"
         val productPrice = intent.getDoubleExtra("product_price", 0.0)
         val productImage = intent.getStringExtra("product_image") ?: ""
         val productCategory = intent.getStringExtra("product_category") ?: ""
+        val productSizes = intent.getStringArrayExtra("product_sizes") ?: arrayOf("XS", "S", "M", "L", "XL")
+        val productMaterial = intent.getStringExtra("product_material") ?: ""
+        val productCountry = intent.getStringExtra("product_country") ?: ""
 
-        // Создаем объект товара с размерами
+        // Создаем объект товара
+        val sizes = productSizes.map { Size(id = it, name = it) }
         currentProduct = Product(
             id = productId,
             name = productName,
-            description = productDescription,
-            price = productPrice,
+            shortDescription = productDescription,
+            longDescription = productDescription,
+            priceInKopecks = (productPrice * 100).toInt(),
             imageUrl = productImage,
-            category = productCategory,
-            availableSizes = listOf("XS", "S", "M", "L", "XL")
+            tags = emptyList(),
+            sizes = sizes,
+            categoryId = productCategory,
+            material = productMaterial,
+            countryOfOrigin = productCountry
         )
 
         // Находим View элементы
@@ -52,18 +62,18 @@ class ProductDetailActivity : AppCompatActivity() {
         val descriptionTextView = findViewById<TextView>(R.id.productDescription)
         val imageView = findViewById<ImageView>(R.id.productImage)
         val backButton = findViewById<ImageView>(R.id.backButton)
-        val priceTextView = findViewById<TextView?>(R.id.productPrice)
+        val priceTextView = findViewById<TextView>(R.id.productPrice)
 
         // Находим элементы для размеров
         sizesContainer = findViewById(R.id.sizesContainer)
         selectedSizeText = findViewById(R.id.selectedSizeText)
         addToCartButton = findViewById(R.id.addToCartButton)
-        sizeSectionTitle = findViewById(R.id.sizeSectionTitle)  // Заголовок секции размеров
+        sizeSectionTitle = findViewById(R.id.sizeSectionTitle)
 
         // Заполняем данными
         nameTextView.text = productName
         descriptionTextView.text = productDescription
-        priceTextView?.text = String.format("$%,.2f", productPrice)
+        priceTextView.text = PriceFormatter.formatRubles(productPrice)
 
         // Загружаем изображение
         Glide.with(this)
@@ -79,12 +89,11 @@ class ProductDetailActivity : AppCompatActivity() {
             selectedSizeText.visibility = View.GONE
             sizeSectionTitle.visibility = View.GONE
 
-            // Кнопка сразу активна (размер не нужен)
             addToCartButton.isEnabled = true
-            selectedSize = "one_size"  // Условный размер
+            selectedSize = "one_size"
             selectedSizeText.text = "Размер: стандартный"
         } else {
-            // Для одежды и драгоценностей показываем выбор размера
+            // Для одежды показываем выбор размера
             sizesContainer.visibility = View.VISIBLE
             selectedSizeText.visibility = View.VISIBLE
             sizeSectionTitle.visibility = View.VISIBLE
@@ -114,7 +123,8 @@ class ProductDetailActivity : AppCompatActivity() {
     }
 
     private fun createSizeButtons() {
-        val sizes = currentProduct?.availableSizes ?: return
+        val product = currentProduct ?: return
+        val sizes = product.sizes.map { it.name }
 
         for (size in sizes) {
             val button = MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle)
@@ -126,7 +136,7 @@ class ProductDetailActivity : AppCompatActivity() {
             button.text = size
             button.setPadding(8, 8, 8, 8)
 
-            if (CartManager.isInCart(currentProduct!!.id, size)) {
+            if (CartManager.isInCart(product.id, size)) {
                 button.setTextColor(ContextCompat.getColor(this, android.R.color.holo_green_dark))
                 button.strokeColor = ContextCompat.getColorStateList(this, android.R.color.holo_green_dark)
             }
