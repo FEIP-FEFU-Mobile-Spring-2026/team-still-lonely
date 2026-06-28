@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="80dp"
+    android:height="80dp"
+    android:viewportWidth="80"
+    android:viewportHeight="80">
+
+    <!-- Зелёный круг -->
+    <path
+        android:fillColor="#4CAF50"
+        android:pathData="M40,8 C22.3,8 8,22.3 8,40 C8,57.7 22.3,72 40,72 C57.7,72 72,57.7 72,40 C72,22.3 57.7,8 40,8 Z"/>
+
+    <!-- Белая галочка -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M28,42 L36,50 L54,28"/>
+
+</vector>

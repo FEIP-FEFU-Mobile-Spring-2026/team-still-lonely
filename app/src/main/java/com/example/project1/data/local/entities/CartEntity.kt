@@ -1,0 +1,13 @@
+package com.example.project1.data.local.entities
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "cart_items")
+data class CartEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    val productId: String,
+    val sizeId: String,
+    val quantity: Int
+)
